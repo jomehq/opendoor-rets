@@ -1,10 +1,10 @@
 import mimetypes
 from typing import Optional, Sequence
-import cgi
 
 from requests import Response
 from requests.structures import CaseInsensitiveDict
 from requests_toolbelt.multipart.decoder import MultipartDecoder
+from email.message import Message
 
 from rets.errors import RetsApiError, RetsResponseError
 from rets.http.data import Object
@@ -127,10 +127,16 @@ def _guess_mime_type(location: str) -> Optional[str]:
     return mime_type
 
 
+# https://stackoverflow.com/a/75727619
 def _parse_mime_type(content_type: str) -> Optional[str]:
     # Parse mime type from content-type header, e.g. 'image/jpeg;charset=US-ASCII' -> 'image/jpeg'
-    mime_type, _ = cgi.parse_header(content_type)
-    return mime_type or None
+    email = Message()
+    email['content-type'] = content_type
+    params = email.get_params()
+    try:
+        return params[0][0] or None
+    except (IndexError, TypeError):
+        return None 
 
 
 def _decode_headers(headers: CaseInsensitiveDict, encoding: str) -> CaseInsensitiveDict:
